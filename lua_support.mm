@@ -208,9 +208,7 @@ extern "C" {
         return 1;
     }
     
-    void execLuaScript(NSString* scriptfile) {
-        AMLog(@"Executing script %@", scriptfile);
-        
+    void execLuaScript(NSString* script) {
         // initialize scale resolution.
         actual_size = [[UIScreen mainScreen] bounds].size;
         adoptResolution(actual_size.width, actual_size.height);
@@ -241,7 +239,7 @@ extern "C" {
             return;
         }
         
-        int fl = luaL_dofile(L, [scriptfile UTF8String]);
+        int fl = luaL_dostring(L, [script UTF8String]);
         
         if(fl != 0){
             AMLog(@"lua Error: %@", [NSString stringWithUTF8String:lua_tostring(L, -1)]);
@@ -249,8 +247,6 @@ extern "C" {
         }
         
         lua_close(L);
-        
-        AMLog(@"Executing script Done %@", scriptfile);
     }
 
 #if __cplusplus
