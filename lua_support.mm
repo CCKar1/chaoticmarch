@@ -12,6 +12,7 @@
 
 #import "logging.h"
 #import "SimulateTouch.h"
+#import "ui-kit.h"
 
 //from: http://stackoverflow.com/questions/5029267/is-there-any-way-of-asking-an-ios-view-which-of-its-children-has-first-responder/14135456#14135456
 @interface UIResponder (firstResponder)
@@ -73,6 +74,42 @@ extern "C" {
         AMLog(@"lua: %@", [NSString stringWithUTF8String:param1]);
         
         return 0;
+    }
+
+    BOOL isInBounds(CGRect rect, UIView* view) {
+        CGPoint abs_point = [view convertPoint:[view bounds].origin toView: nil];
+
+        return (rect.origin.x >= abs_point.x) && ((rect.origin.x + rect.size.width) < abs_point.x) &&
+               (rect.origin.y >= abs_point.y) && ((rect.origin.y + rect.size.height) < abs_point.y);
+    }
+
+    BOOL findStringAt(NSString* str, CGRect box) {
+        __block BOOL foundString = false;
+
+        walkViewTree((UIView*)[[UIApplication sharedApplication] keyWindow], ^BOOL(UIView * curView){
+            if(isInBounds(box, curView) && [curView respondsToSelector:@selector(getText)]) {
+                NSString* text = [curView getText];
+
+                if([text containstString: str]) {
+                    foundString = true;
+
+                    return false;
+                }
+            }
+
+            return true;
+        });
+
+        return foundString;
+    }
+
+    CGRect makeRectFromBox(CGFloat res_x, CGFloat res_y, CGFloat choice_x, CGFloat choice_y) {
+        CGFloat boxWidth = actual_size.width/res_x;
+        CGFloat boxHeight = actual_size.height/res_y;
+        CGFloat x = boxWidth * choice_x;
+        CGFloat y = boxHeight * choice_y;
+
+        return CGRectMake(x, y, boxWidth, boxHeight);
     }
     
     int pathIndeces[10] = {0};
@@ -143,6 +180,33 @@ extern "C" {
         
         return 0;
     }
+
+    int lua_hasTextAt(lua_State* L) {
+        const char* inputString = luaL_checkstring(L, 1);
+        int resolution_x = luaL_checkint(L, 2);
+        int resolution_y = luaL_checkint(L, 3);
+        int choice_x = luaL_checkint(L, 4);
+        int choice_y = luaL_checkint(L, 5);
+
+        CGRect box = makeRectFromBox(resolution_x, resolution_y, choice_x, choice_y);
+        BOOL foundString = findStringAt([NSString stringWithUTF8String:inputString], box);
+
+        lua_pushboolean(L, foundString); // false - nothing found.
+
+        return 1;
+    }
+
+    int lua_hasComponentAt(lua_State* L) {
+        const char* componentName = luaL_checkstring(L, 1);
+        int resolution_x = luaL_checkint(L, 2);
+        int resolution_y = luaL_checkint(L, 3);
+        int choice_x = luaL_checkint(L, 4);
+        int choice_y = luaL_checkint(L, 5);
+
+        lua_pushboolean(L, 0); // false - nothing found.
+
+        return 1;
+    }
     
     void execLuaScript(NSString* scriptfile) {
         AMLog(@"Executing script %@", scriptfile);
@@ -161,6 +225,8 @@ extern "C" {
             {"inputText", &lua_inputText},
             {"adaptResolution", &lua_adaptResolution},
             {"adaptOrientation", &lua_adaptOrientation},
+            {"hasComponentAt", &lua_hasComponentAt},
+            {"hasTextAt", &lua_hasTextAt},
             {NULL,        NULL}
         };
         
