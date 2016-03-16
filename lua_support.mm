@@ -41,7 +41,8 @@ extern "C" {
 
 #include "lua.h"
 #include "lauxlib.h"
-    
+#include "lualib.h"
+
     CGSize scaled_size;
     CGSize actual_size;
     
@@ -79,18 +80,23 @@ extern "C" {
     BOOL isInBounds(CGRect rect, UIView* view) {
         CGPoint abs_point = [view convertPoint:[view bounds].origin toView: nil];
 
-        return (rect.origin.x >= abs_point.x) && ((rect.origin.x + rect.size.width) < abs_point.x) &&
-               (rect.origin.y >= abs_point.y) && ((rect.origin.y + rect.size.height) < abs_point.y);
+        BOOL retVal = 
+            ((abs_point.x >= rect.origin.x) && ((rect.origin.x + rect.size.width) <= abs_point.x)) &&
+            ((abs_point.y >= rect.origin.y) && ((rect.origin.y + rect.size.height) <= abs_point.y));
+
+        return retVal;
     }
 
     BOOL findStringAt(NSString* str, CGRect box) {
         __block BOOL foundString = false;
 
         walkViewTree((UIView*)[[UIApplication sharedApplication] keyWindow], ^BOOL(UIView * curView){
-            if(isInBounds(box, curView) && [curView respondsToSelector:@selector(getText)]) {
-                NSString* text = [curView getText];
+            if(isInBounds(box, curView) && [curView respondsToSelector:@selector(text)]) {
+                NSString* text = [curView text];
 
-                if([text containstString: str]) {
+                AMLog(@"lua: %@", text);
+
+                if([text rangeOfString: str].location == NSNotFound) {
                     foundString = true;
 
                     return false;
@@ -101,6 +107,24 @@ extern "C" {
         });
 
         return foundString;
+    }
+
+    BOOL findComponentAt(Class componentName, CGRect box) {
+        __block BOOL foundComp = false;
+
+        walkViewTree((UIView*)[[UIApplication sharedApplication] keyWindow], ^BOOL(UIView * curView){
+            if(isInBounds(box, curView)) {
+                if([curView isKindOfClass:componentName]) {
+                    foundComp = true;
+                    // found, stop scanning.
+                    return false;
+                }
+            }
+
+            return true;
+        });
+
+        return foundComp;
     }
 
     CGRect makeRectFromBox(CGFloat res_x, CGFloat res_y, CGFloat choice_x, CGFloat choice_y) {
@@ -203,7 +227,76 @@ extern "C" {
         int choice_x = luaL_checkint(L, 4);
         int choice_y = luaL_checkint(L, 5);
 
-        lua_pushboolean(L, 0); // false - nothing found.
+        BOOL foundComp = false;
+
+        Class klass = objc_getClass(componentName);
+
+        if(klass != nil) {
+            CGRect box = makeRectFromBox(resolution_x, resolution_y, choice_x, choice_y);
+
+            foundComp = findComponentAt(klass, box);
+        }
+
+        lua_pushboolean(L, foundComp); // false - nothing found.
+
+        return 1;
+    }
+
+    int lua_dofile_prime(lua_State* L) {
+        const char* filename = luaL_checkstring(L, 1);
+
+        int fl = luaL_dofile(L, filename);
+
+        if(fl != 0){
+            AMLog(@"lua Error: %@", [NSString stringWithUTF8String:lua_tostring(L, -1)]);
+            lua_pop(L, 1);
+        }
+
+        return 0;
+    }
+
+    int lua_findOfType(lua_State* L) {
+        __block int nextComponent = 0;
+        const char* componentName = luaL_checkstring(L, 1);
+
+        lua_newtable(L);
+
+        Class klass = objc_getClass(componentName);
+
+        if(klass != nil) {
+            walkViewTree((UIView*)[[UIApplication sharedApplication] keyWindow], ^BOOL(UIView * curView){
+                if([curView isKindOfClass:klass]) {
+                    CGRect bounds = [curView bounds];
+                    CGPoint abs_point = [curView convertPoint:bounds.origin toView: nil];
+
+                    lua_newtable(L);
+
+                    lua_pushstring(L, "x");
+                    lua_pushnumber(L, abs_point.x);
+                    lua_settable(L, -3);
+
+                    lua_pushstring(L, "y");
+                    lua_pushnumber(L, abs_point.y);
+                    lua_settable(L, -3);
+
+                    lua_pushstring(L, "width");
+                    lua_pushnumber(L, bounds.size.width);
+                    lua_settable(L, -3);
+
+                    lua_pushstring(L, "height");
+                    lua_pushnumber(L, bounds.size.height);
+                    lua_settable(L, -3);
+
+                    // local table should be at the top of the stack
+                    //  and bigger table following that.
+                    lua_rawseti(L, -2, nextComponent);
+
+                    nextComponent++;
+                }
+
+                return true;
+            });
+        }
 
         return 1;
     }
@@ -215,6 +308,8 @@ extern "C" {
         
         lua_State *L = luaL_newstate();
         
+        luaL_openlibs(L);
+
         const luaL_Reg log_lib[] = {
             {"log",       &lua_log},
             {"touchDown", &lua_touchDown},
@@ -225,13 +320,22 @@ extern "C" {
             {"adaptOrientation", &lua_adaptOrientation},
             {"hasComponentAt", &lua_hasComponentAt},
             {"hasTextAt", &lua_hasTextAt},
+            {"findOfType", &lua_findOfType},
+            //{"dofile", &lua_dofile_prime},
             {NULL,        NULL}
         };
         
         lua_pushglobaltable(L);
         luaL_setfuncs(L, log_lib, 0);
         
-        const char* preload = "ORIENTATION_TYPE = { UNKNOWN = 0, PORTRAIT = 1, PORTRAIT_UPSIDE_DOWN = 2, LANDSCAPE_LEFT = 3, LANDSCAPE_RIGHT = 4}";
+        const char* preload = 
+            "ORIENTATION_TYPE = "
+            "   { UNKNOWN = 0, "
+            "     PORTRAIT = 1, "
+            "     PORTRAIT_UPSIDE_DOWN = 2, "
+            "     LANDSCAPE_LEFT = 3, "
+            "     LANDSCAPE_RIGHT = 4}";
+
         if(luaL_loadbuffer(L, preload, strlen(preload), 0) || lua_pcall(L, 0, 0, 0) ) {
             AMLog(@"lua error preloading: %s\n", lua_tostring(L, -1));
             lua_pop(L, 1);
