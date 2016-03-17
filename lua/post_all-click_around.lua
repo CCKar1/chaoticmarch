@@ -1,8 +1,5 @@
 -- let's click some buttons around the screen.
 
--- wait 5 seconds
-usleep(5 * 1000000)
-
 -- get all the buttons and select one that was not clicked.
 function getButton(clickedState)
 	local buttons = findOfType("UIButton")
