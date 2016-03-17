@@ -21,11 +21,14 @@ end
 -- do we continue?
 allowedBundles = {}
 allowedBundles["com.highaltitudehacks.dvia"] = 1
+allowedBundles["com.discoverfinancial.mobile"] = 1
 
 bundle_id = getBundleID();
 
 if(allowedBundles[bundle_id] == nil) then
     -- we don't want to proceed
+    log("Not running in: " .. bundle_id)
+
     return
 end
 
@@ -34,4 +37,4 @@ base_path = "/var/root/lua/"
 
 log("Executing user scripts in " .. bundle_id)
 
-dofile(base_path .. "click_first_button.lua")
+dofile(base_path .. "click_around.lua")
