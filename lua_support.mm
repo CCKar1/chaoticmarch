@@ -285,17 +285,42 @@ extern "C" {
         return ret;
     }
 
-    int lua_findOfType(lua_State* L) {
-        __block int nextComponent = 0;
-        const char* componentName = luaL_checkstring(L, 1);
+    int lua_findOfTypes(lua_State* L) {
+        NSMutableArray* types = [[NSMutableArray alloc] init];
+        int arg_num = 1;
+    
+        while(true) {
+            const char* componentName = luaL_checkstring(L, arg_num);
 
-        lua_newtable(L);
+            // is empty string.
+            if(componentName[0] == '\0') {
+                // no more.
+                break;
+            }
 
-        Class klass = objc_getClass(componentName);
+            Class klass = objc_getClass(componentName);
+            if(klass != nil) {
+                [types addObject:klass];
+            }
 
-        if(klass != nil) {
+            arg_num++;
+        }
+
+        if([types count] > 0) {
+            __block int nextComponent = 0;
+
+            lua_newtable(L);
+
             walkViewTree((UIView*)[[UIApplication sharedApplication] keyWindow], ^BOOL(UIView * curView){
-                if([curView isKindOfClass:klass] && !isHidden(curView)) {
+                BOOL matchesType = false;
+                for(Class klass in types) {
+                    if([curView isKindOfClass:klass]) {
+                        matchesType = true;
+                        break;
+                    }
+                }
+
+                if(matchesType && !isHidden(curView)) {
                     CGRect bounds = [curView bounds];
                     CGPoint abs_point = [curView convertPoint:bounds.origin toView: nil];
 
@@ -366,7 +391,7 @@ extern "C" {
             {"adaptOrientation", &lua_adaptOrientation},
             {"hasComponentAt", &lua_hasComponentAt},
             {"hasTextAt", &lua_hasTextAt},
-            {"findOfType", &lua_findOfType},
+            {"findOfTypes", &lua_findOfTypes},
             {"getBundleID", &lua_get_bundle_id},
             {NULL,        NULL}
         };

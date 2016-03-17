@@ -2,7 +2,7 @@
 
 -- get all the buttons and select one that was not clicked.
 function getButton(clickedState)
-	local buttons = findOfType("UIButton")
+	local buttons = findOfTypes("UIButton", "UINavigationItemButtonView", "_UIAlertControllerActionView", "")
 
 	for index, button in pairs(buttons) do
 	    if(button["text"] ~= nil and clickedState[button["text"]] == nil) then
@@ -32,6 +32,8 @@ while true do
 		log("clicked " .. button["text"])
 	else
 		log("No buttons found, help!")
+
+		check_alert()
 
 		if(waitTime == 0) then
 			break
