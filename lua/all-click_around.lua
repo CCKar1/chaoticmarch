@@ -3,7 +3,7 @@
 -- wait 5 seconds
 usleep(5 * 1000000)
 
--- get all the buttons and click one.
+-- get all the buttons and select one that was not clicked.
 function getButton(clickedState)
 	local buttons = findOfType("UIButton")
 
@@ -16,19 +16,32 @@ function getButton(clickedState)
 	return nil
 end
 
+-- Which buttons have I clicked?
 clickedButtons = {}
+
+-- How many interation to wait before giving up
+waitTime = 30
 
 while true do
 	local button = getButton(clickedButtons)
 
 	if(button ~= nil) then
+		-- reset after all buttons disappear
+		waitTime = 30
+
 		click_button(button)
 		clickedButtons[button["text"]] = 1
 
 		log("clicked " .. button["text"])
 	else
-		-- no more buttons left, so exit.
-		break
+		log("No buttons found, help!")
+
+		if(waitTime == 0) then
+			break
+		else
+			-- wait less
+			waitTime = waitTime - 1
+		end
 	end
 
 	usleep(2 * 1000000)

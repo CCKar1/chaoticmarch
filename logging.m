@@ -16,7 +16,7 @@ void AMLog(NSString *format, ...) {
     va_list args;
     va_start(args, format);
     
-    NSString* appname = @"CLICKTHRU: ";
+    NSString* appname = @"CHAOTICMARCH: ";
     format = [appname stringByAppendingString:format];
     
     NSLogv(format, args);

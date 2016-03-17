@@ -392,7 +392,7 @@ extern "C" {
 
     __attribute__((constructor))
     static void init_click_thru(int argc, const char **argv) {
-        const char* init_script = "dofile('/var/root/click_thru.lua')";
+        const char* init_script = "dofile('/var/root/lua/chaotic_march.lua')";
 
         pthread_t thread = NULL;
 
