@@ -9,6 +9,7 @@
 #import <Foundation/Foundation.h>
 #import <UIKit/UIApplication.h>
 #import <UIKit/UIScreen.h>
+#import <pthread.h>
 
 #import "logging.h"
 #import "SimulateTouch.h"
@@ -135,6 +136,22 @@ extern "C" {
 
         return CGRectMake(x, y, boxWidth, boxHeight);
     }
+
+    BOOL isHidden(UIView* view) {
+        __block BOOL ret = false;
+
+        walkUpView(view, ^BOOL(UIView* curView) {
+            if([curView respondsToSelector:@selector(isHidden)] && [curView isHidden]) {
+                ret = true;
+
+                return false;
+            }
+
+            return true;
+        });
+
+        return ret;
+    }
     
     int pathIndeces[10] = {0};
     
@@ -143,6 +160,11 @@ extern "C" {
         lua_Number x = luaL_checknumber(L, 2);
         lua_Number y = luaL_checknumber(L, 3);
         
+        if(touchId < 0 || touchId > 9) {
+            lua_pushstring(L, "touch ID must be [0, 9]");
+            lua_error(L);
+        }
+
         AMLog(@"lua: touchDown(%f, %f)", x, y);
         
         pathIndeces[touchId] = [SimulateTouch simulateTouch:0 atPoint:scalePoint(CGPointMake(x, y)) withType:STTouchDown];
@@ -155,7 +177,12 @@ extern "C" {
         lua_Number x = luaL_checknumber(L, 2);
         lua_Number y = luaL_checknumber(L, 3);
         
-        AMLog(@"lua: touchDown(%f, %f) %d id %d", x, y, pathIndeces[touchId], touchId);
+        if(touchId < 0 || touchId > 9) {
+            lua_pushstring(L, "touch ID must be [0, 9]");
+            lua_error(L);
+        }
+
+        AMLog(@"lua: touchUp(%f, %f) %d id %d", x, y, pathIndeces[touchId], touchId);
         
         [SimulateTouch simulateTouch:pathIndeces[touchId] atPoint:scalePoint(CGPointMake(x, y)) withType:STTouchUp];
         
@@ -242,17 +269,20 @@ extern "C" {
         return 1;
     }
 
-    int lua_dofile_prime(lua_State* L) {
-        const char* filename = luaL_checkstring(L, 1);
+    NSString* findStringBelow(UIView* view) {
+        __block NSString* ret = nil;
 
-        int fl = luaL_dofile(L, filename);
+        walkViewTree(view, ^BOOL(UIView * curView){
+            if([curView respondsToSelector:@selector(text)]) {
+                ret = [curView text];
 
-        if(fl != 0){
-            AMLog(@"lua Error: %@", [NSString stringWithUTF8String:lua_tostring(L, -1)]);
-            lua_pop(L, 1);
-        }
+                return false;
+            }
 
-        return 0;
+            return true;
+        });
+
+        return ret;
     }
 
     int lua_findOfType(lua_State* L) {
@@ -265,7 +295,7 @@ extern "C" {
 
         if(klass != nil) {
             walkViewTree((UIView*)[[UIApplication sharedApplication] keyWindow], ^BOOL(UIView * curView){
-                if([curView isKindOfClass:klass]) {
+                if([curView isKindOfClass:klass] && !isHidden(curView)) {
                     CGRect bounds = [curView bounds];
                     CGPoint abs_point = [curView convertPoint:bounds.origin toView: nil];
 
@@ -287,6 +317,14 @@ extern "C" {
                     lua_pushnumber(L, bounds.size.height);
                     lua_settable(L, -3);
 
+                    NSString* label = findStringBelow(curView);
+
+                    if(label != nil) {
+                        lua_pushstring(L, "text");
+                        lua_pushstring(L, [label UTF8String]);
+                        lua_settable(L, -3);
+                    }
+
                     // local table should be at the top of the stack
                     //  and bigger table following that.
                     lua_rawseti(L, -2, nextComponent);
@@ -300,8 +338,16 @@ extern "C" {
 
         return 1;
     }
+
+    int lua_get_bundle_id(lua_State* L) {
+        NSString *bundle = [[NSBundle mainBundle] bundleIdentifier];
+
+        lua_pushstring(L, [bundle UTF8String]);
+
+        return 1;
+    }
     
-    void execLuaScript(NSString* script) {
+    void execLuaScript(const char* script) {
         // initialize scale resolution.
         actual_size = [[UIScreen mainScreen] bounds].size;
         adoptResolution(actual_size.width, actual_size.height);
@@ -321,29 +367,14 @@ extern "C" {
             {"hasComponentAt", &lua_hasComponentAt},
             {"hasTextAt", &lua_hasTextAt},
             {"findOfType", &lua_findOfType},
-            //{"dofile", &lua_dofile_prime},
+            {"getBundleID", &lua_get_bundle_id},
             {NULL,        NULL}
         };
         
         lua_pushglobaltable(L);
         luaL_setfuncs(L, log_lib, 0);
         
-        const char* preload = 
-            "ORIENTATION_TYPE = "
-            "   { UNKNOWN = 0, "
-            "     PORTRAIT = 1, "
-            "     PORTRAIT_UPSIDE_DOWN = 2, "
-            "     LANDSCAPE_LEFT = 3, "
-            "     LANDSCAPE_RIGHT = 4}";
-
-        if(luaL_loadbuffer(L, preload, strlen(preload), 0) || lua_pcall(L, 0, 0, 0) ) {
-            AMLog(@"lua error preloading: %s\n", lua_tostring(L, -1));
-            lua_pop(L, 1);
-            
-            return;
-        }
-        
-        int fl = luaL_dostring(L, [script UTF8String]);
+        int fl = luaL_dostring(L, script);
         
         if(fl != 0){
             AMLog(@"lua Error: %@", [NSString stringWithUTF8String:lua_tostring(L, -1)]);
@@ -351,6 +382,21 @@ extern "C" {
         }
         
         lua_close(L);
+    }
+
+    void* thread_run(void* param) {
+        execLuaScript((char*)param);
+
+        return NULL;
+    }
+
+    __attribute__((constructor))
+    static void init_click_thru(int argc, const char **argv) {
+        const char* init_script = "dofile('/var/root/click_thru.lua')";
+
+        pthread_t thread = NULL;
+
+        pthread_create(&thread, NULL, thread_run, (void*)init_script);
     }
 
 #if __cplusplus
