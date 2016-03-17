@@ -1,4 +1,5 @@
 log("Loaded CACOPHONIC MARCH")
+
 -- some required types
 ORIENTATION_TYPE = { 
     UNKNOWN = 0,
@@ -18,6 +19,7 @@ function click_button(button)
     touchUp(0, x, y)
 end
 
+-- check if the file exists
 function file_exists(name)
     if type(name) ~= "string" then 
         return false 
@@ -26,7 +28,7 @@ function file_exists(name)
     return os.rename(name,name) and true or false
 end
 
--- Lua implementation of PHP scandir function
+-- list files from a directory.
 function files_ls(glob)
     local i, t, popen = 0, {}, io.popen
     local pfile = popen('/bin/ls -A ' .. glob .. '')
@@ -45,8 +47,7 @@ end
 -- CONFIGURABLE: Enter bundles where to run
 allowedBundles = {}
 allowedBundles["com.highaltitudehacks.dvia"] = 1
-allowedBundles["com.discoverfinancial.mobile"] = 1
-allowedBundles["com.ebay.iphone"] = 1
+allowedBundles["com.gs.pwm.external"] = 1
 
 bundle_id = getBundleID();
 
