@@ -23,6 +23,7 @@ extern "C" {
 
     NSArray* findViewType(Class type, UIView * root);
 
+    void dispatch_on_main(void (^cb)());
 #if __cplusplus
 }   // Extern C
 #endif

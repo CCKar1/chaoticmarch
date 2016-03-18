@@ -12,9 +12,13 @@ function click_button(button)
     local x = button["x"] + math.floor((button["width"]/2))
     local y = button["y"] + math.floor((button["height"]/2))
 
+    showCircle(0, x, y, 20);
+
     touchDown(0, x, y)
     usleep(100000)
     touchUp(0, x, y)
+
+    hideCircle(0);
 end
 
 -- try to get out of alert
@@ -32,7 +36,8 @@ end
 function getButton(clickedState)
     -- Basically anything we might consider clickable
     local buttons = findOfTypes("UIButton", "UINavigationItemButtonView", 
-        "UINavigationItemView", "_UIAlertControllerActionView", "")
+        "UINavigationItemView", "_UIAlertControllerActionView", "UISegmentLabel", 
+        "UILabel", "")
 
     for index, button in pairs(buttons) do
         if(button["text"] ~= nil and clickedState[button["text"]] == nil) then

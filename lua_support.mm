@@ -6,6 +6,7 @@
 //
 //
 
+#import <UIKit/UIKit.h>
 #import <Foundation/Foundation.h>
 #import <UIKit/UIApplication.h>
 #import <UIKit/UIScreen.h>
@@ -14,6 +15,8 @@
 #import "logging.h"
 #import "SimulateTouch.h"
 #import "ui-kit.h"
+
+#define TOUCH_POINTS 10
 
 //from: http://stackoverflow.com/questions/5029267/is-there-any-way-of-asking-an-ios-view-which-of-its-children-has-first-responder/14135456#14135456
 @interface UIResponder (firstResponder)
@@ -150,17 +153,25 @@ extern "C" {
             return true;
         });
 
+        if(!ret) {
+            // not hidden but let's check if it is scrolled off screen
+            CGRect bounds = [view bounds];
+            CGPoint abs_point = [view convertPoint:bounds.origin toView: nil];
+
+            ret = !(abs_point.x > 0 && abs_point.y > 0);
+        }
+
         return ret;
     }
     
-    int pathIndeces[10] = {0};
+    int pathIndeces[TOUCH_POINTS] = {0};
     
     int lua_touchDown(lua_State* L) {
         int touchId = luaL_checkint(L, 1);
         lua_Number x = luaL_checknumber(L, 2);
         lua_Number y = luaL_checknumber(L, 3);
         
-        if(touchId < 0 || touchId > 9) {
+        if(touchId < 0 || touchId >= TOUCH_POINTS) {
             lua_pushstring(L, "touch ID must be [0, 9]");
             lua_error(L);
         }
@@ -177,7 +188,7 @@ extern "C" {
         lua_Number x = luaL_checknumber(L, 2);
         lua_Number y = luaL_checknumber(L, 3);
         
-        if(touchId < 0 || touchId > 9) {
+        if(touchId < 0 || touchId >= TOUCH_POINTS) {
             lua_pushstring(L, "touch ID must be [0, 9]");
             lua_error(L);
         }
@@ -194,7 +205,7 @@ extern "C" {
         lua_Number x = luaL_checknumber(L, 2);
         lua_Number y = luaL_checknumber(L, 3);
         
-        if(touchId < 0 || touchId > 9) {
+        if(touchId < 0 || touchId >= TOUCH_POINTS) {
             lua_pushstring(L, "touch ID must be [0, 9]");
             lua_error(L);
         }
@@ -393,6 +404,77 @@ extern "C" {
 
         return 1;
     }
+
+    UIView* circles[TOUCH_POINTS] = {0};
+
+    int lua_showCircle(lua_State* L) {
+        int touchId = luaL_checkint(L, 1);
+        lua_Number x = luaL_checknumber(L, 2);
+        lua_Number y = luaL_checknumber(L, 3);
+        lua_Number r = luaL_checknumber(L, 4);
+        
+        if(touchId < 0 || touchId >= TOUCH_POINTS) {
+            lua_pushstring(L, "touch ID must be [0, 9]");
+            lua_error(L);
+        }
+
+        UIView* circle = circles[touchId];
+
+        // allocate if don't already have.
+        if(circle == NULL) {
+            circles[touchId] = [[UIView alloc] init];
+            circle = circles[touchId];
+
+            circle.alpha = 0.0f;
+            circle.backgroundColor = [UIColor greenColor];
+            circle.clipsToBounds = YES;
+
+            UIWindow* keyWindow = [UIApplication sharedApplication].keyWindow;
+            [keyWindow addSubview:circle];
+        }
+
+        CGFloat oldAlpha = circle.alpha;
+        CGRect oldLoc    = circle.frame;
+        CGRect circleLoc = CGRectMake(x - r, y - r, r * 2,r * 2);
+
+        circle.alpha = 0.5f;
+        circle.layer.cornerRadius = r;
+
+        if(oldAlpha != 0.0) {
+            // circle was already visible so move it.
+            dispatch_on_main(^{
+                [UIView animateWithDuration:0.25f animations:^{
+                    circle.frame = CGRectOffset(oldLoc, circleLoc.origin.x - oldLoc.origin.x, circleLoc.origin.y - oldLoc.origin.y);
+                }];
+            });
+        } else {
+            // circle was not visible, so pop up.
+            circle.frame = circleLoc;
+        }
+
+        return 0;
+    }
+
+    int lua_hideCircle(lua_State* L) {
+        int touchId = luaL_checkint(L, 1);
+        
+        if(touchId < 0 || touchId >= TOUCH_POINTS) {
+            lua_pushstring(L, "touch ID must be [0, 9]");
+            lua_error(L);
+        }
+
+        UILabel* circle = circles[touchId];
+
+        if(circle != NULL) {
+            dispatch_on_main(^{
+                [UIView animateWithDuration:0.25f animations:^{
+                    [circle setAlpha:0.0f];
+                }];
+            });
+        }
+
+        return 0;
+    }
     
     void execLuaScript(const char* script) {
         // initialize scale resolution.
@@ -416,6 +498,8 @@ extern "C" {
             {"hasTextAt", &lua_hasTextAt},
             {"findOfTypes", &lua_findOfTypes},
             {"getBundleID", &lua_get_bundle_id},
+            {"showCircle", &lua_showCircle},
+            {"hideCircle", &lua_hideCircle},
             {NULL,        NULL}
         };
         

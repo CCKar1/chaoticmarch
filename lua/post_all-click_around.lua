@@ -4,9 +4,10 @@
 clickedButtons = {}
 
 -- How many interation to wait before giving up
-waitTime = 30
+waitTime = 15
+attempts = 2
 
-while true do
+while (attempts > 0) do
 	local button = getButton(clickedButtons)
 
 	if(button ~= nil) then
@@ -14,7 +15,10 @@ while true do
 		waitTime = 30
 
 		click_button(button)
-		clickedButtons[button["text"]] = 1
+
+		if(button["text"] ~= nil) then
+			clickedButtons[button["text"]] = 1
+		end
 
 		log("clicked " .. button["text"])
 	else
@@ -28,7 +32,12 @@ while true do
 		clickedButtons["back"] = nil
 
 		if(waitTime == 0) then
-			break
+			-- do a reset and maybe try again
+			clickedButtons = {}
+			waitTime = 30
+			attempts = attempts - 1
+
+			log("Finished a run, resetting for attempt " .. tostring(attempts))
 		else
 			-- wait less
 			waitTime = waitTime - 1
@@ -38,4 +47,4 @@ while true do
 	usleep(2 * 1000000)
 end
 
-log("Looks like I've clicked all the buttons")
+log("Looks like I've clicked everything! Bye!")

@@ -29,6 +29,7 @@ end
 allowedBundles = {}
 allowedBundles["com.highaltitudehacks.dvia"] = 1
 allowedBundles["com.gs.pwm.external"] = 1
+allowedBundles["com.apple.iBooks"] = 1
 
 bundle_id = getBundleID();
 
