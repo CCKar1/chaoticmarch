@@ -27,3 +27,18 @@ function check_alert()
         end
     end
 end
+
+-- get all the buttons and select one that was not clicked.
+function getButton(clickedState)
+    -- Basically anything we might consider clickable
+    local buttons = findOfTypes("UIButton", "UINavigationItemButtonView", 
+        "UINavigationItemView", "_UIAlertControllerActionView", "")
+
+    for index, button in pairs(buttons) do
+        if(button["text"] ~= nil and clickedState[button["text"]] == nil) then
+            return button
+        end
+    end
+
+    return nil
+end

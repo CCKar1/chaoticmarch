@@ -189,6 +189,23 @@ extern "C" {
         return 0;
     }
     
+    int lua_touchMove(lua_State* L) {
+        int touchId = luaL_checkint(L, 1);
+        lua_Number x = luaL_checknumber(L, 2);
+        lua_Number y = luaL_checknumber(L, 3);
+        
+        if(touchId < 0 || touchId > 9) {
+            lua_pushstring(L, "touch ID must be [0, 9]");
+            lua_error(L);
+        }
+
+        AMLog(@"lua: touchUp(%f, %f) %d id %d", x, y, pathIndeces[touchId], touchId);
+        
+        [SimulateTouch simulateTouch:pathIndeces[touchId] atPoint:scalePoint(CGPointMake(x, y)) withType:STTouchMove];
+        
+        return 0;
+    }
+
     int lua_inputText(lua_State* L) {
         const char* inputString = luaL_checkstring(L, 1);
         
@@ -385,6 +402,7 @@ extern "C" {
             {"log",       &lua_log},
             {"touchDown", &lua_touchDown},
             {"touchUp",   &lua_touchUp},
+            {"touchMove", &lua_touchMove},
             {"usleep",    &lua_usleep},
             {"inputText", &lua_inputText},
             {"adaptResolution", &lua_adaptResolution},
