@@ -361,6 +361,11 @@ extern "C" {
 
                     NSString* label = findStringBelow(curView);
 
+                    if(label == nil) {
+                        // try again with one level up.
+                        label = findStringBelow(curView.superview);
+                    }
+
                     if(label != nil) {
                         lua_pushstring(L, "text");
                         lua_pushstring(L, [label UTF8String]);
