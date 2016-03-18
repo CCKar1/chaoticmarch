@@ -199,7 +199,7 @@ extern "C" {
             lua_error(L);
         }
 
-        AMLog(@"lua: touchUp(%f, %f) %d id %d", x, y, pathIndeces[touchId], touchId);
+        AMLog(@"lua: touchMove(%f, %f) %d id %d", x, y, pathIndeces[touchId], touchId);
         
         [SimulateTouch simulateTouch:pathIndeces[touchId] atPoint:scalePoint(CGPointMake(x, y)) withType:STTouchMove];
         
