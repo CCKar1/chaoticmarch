@@ -486,19 +486,33 @@ extern "C" {
         luaL_openlibs(L);
 
         const luaL_Reg log_lib[] = {
+            // log(String out)
             {"log",       &lua_log},
+            // touchDown(int touchId, number x, number y)
             {"touchDown", &lua_touchDown},
+            // touchUp(int touchId, number x, number y)
             {"touchUp",   &lua_touchUp},
+            // touchMove(int touchId, number x, number y)
             {"touchMove", &lua_touchMove},
+            // sleep(number mircoseconds)
             {"usleep",    &lua_usleep},
+            // inputTest(String text)
             {"inputText", &lua_inputText},
+            // adaptResolution(int width, int height)
             {"adaptResolution", &lua_adaptResolution},
+            // adaptOrientation(int ORIENTATION_TYPE)
             {"adaptOrientation", &lua_adaptOrientation},
+            // hasComponentAt(String compname, int boxes_x, int boxes_y, int box_x, int box_y)
             {"hasComponentAt", &lua_hasComponentAt},
+            // hasTextAt(String text, int boxes_x, int boxes_y, int box_x, int box_y)
             {"hasTextAt", &lua_hasTextAt},
+            // findOfTypes(String type1, ..., String "")
             {"findOfTypes", &lua_findOfTypes},
+            // getBundleID()
             {"getBundleID", &lua_get_bundle_id},
+            // showCircle(int id, number x, number y, number radius) 
             {"showCircle", &lua_showCircle},
+            // hideCircle(int id) 
             {"hideCircle", &lua_hideCircle},
             {NULL,        NULL}
         };

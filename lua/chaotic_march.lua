@@ -55,7 +55,7 @@ for index, file in pairs(script_files) do
 end
 
 -- run specific scripts
-script_files = files_ls(base_path .. bundle_id .. "*.lua ")
+script_files = files_ls(base_path .. bundle_id .. "*.lua")
 for index, file in pairs(script_files) do
     log("Running script: " .. file)
 
