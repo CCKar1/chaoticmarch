@@ -14,6 +14,7 @@ The CHAORICMARCH engine supports building block functionality by providing funct
 * _usleep(number mircoseconds)_ A sleep is useful between touchUp/Down events to simulate human interaction.
 * _inputTest(String text)_ Enter the text to whatever component is holding the keyboard focus.
 * _adaptResolution(int width, int height)_ If desired, you can change the virtual resolution. This will affect all coordinate based events.
+* _getResolution()_ return two numbers, width and height, representing current resolution.
 * _adaptOrientation(int ORIENTATION_TYPE)_ Change the devices orientation.
 * _hasComponentAt(String compname, int boxes_x, int boxes_y, int box_x, int box_y)_ Checks if a particular component i.e. UIButton is at a specific location. The location is defined by number of equally spaced sections along the X and Y, then specifying which box you want this component to be in. The coordinates are defined so to give the user the freedom to be imprecise. 
 * _hasTextAt(String text, int boxes_x, int boxes_y, int box_x, int box_y)_ Same as component but the engine will look for text at a specified box.

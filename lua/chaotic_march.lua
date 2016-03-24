@@ -30,11 +30,16 @@ allowedBundles = {}
 allowedBundles["com.highaltitudehacks.dvia"] = 1
 allowedBundles["com.gs.pwm.external"] = 1
 allowedBundles["com.apple.iBooks"] = 1
+allowedBundles["com.hdsupply.hdsupplyfm"] = 1
 
 bundle_id = getBundleID();
 
-if(allowedBundles[bundle_id] == nil) then
+if(bundle_id == nil or allowedBundles[bundle_id] == nil) then
     -- we don't want to proceed
+    if(bundle_id == nil) then
+        bundle_id = "nil"
+    end
+    
     log("Not running in: " .. bundle_id)
 
     return

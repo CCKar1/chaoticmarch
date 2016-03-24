@@ -47,3 +47,15 @@ function getButton(clickedState)
 
     return nil
 end
+
+function getInptFields(inputState)
+    local fields = findOfTypes("UITextField", "")
+
+    for index, field in pairs(fields) do
+        if(field["text"] ~= nil and inputState[field["text"]] == nil) then
+            return field
+        end
+    end
+
+    return nil
+end

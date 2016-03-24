@@ -30,6 +30,7 @@ static __weak id currentFirstResponder;
 +(id)currentFirstResponder {
     currentFirstResponder = nil;
     [[UIApplication sharedApplication] sendAction:@selector(findFirstResponder:) to:nil from:nil forEvent:nil];
+
     return currentFirstResponder;
 }
 
@@ -38,6 +39,22 @@ static __weak id currentFirstResponder;
 }
 
 @end
+
+/*@interface UIView
+-(BOOL)visible;
+@end
+
+@implementation UIView
+- (void)viewDidAppear:(BOOL)animated {
+ [super viewDidAppear:animated];
+ visible = YES;
+}
+
+- (void)viewWillDisappear:(BOOL)animated {
+ visible = NO;
+ [super viewWillDisappear:animated];
+}
+@end*/
 
 #if __cplusplus
 extern "C" {
@@ -65,11 +82,17 @@ extern "C" {
     void typeString(NSString* inputString) {
         id firstResponder = [UIResponder currentFirstResponder];
 
-        //check if input is text field
         if( nil != firstResponder ) {
-            if([firstResponder respondsToSelector:@selector(setText)]) {
+            //check if input is text field
+            if([firstResponder respondsToSelector:@selector(setText:)]) {
                 [firstResponder setText: inputString];
+
+                AMLog(@"lua: types in %@", inputString);
+            } else {
+                AMLog(@"lua: FirstResponder doesn't set text %@", firstResponder);
             }
+        } else {
+            AMLog(@"lua: FirstResponder null");
         }
     }
     
@@ -143,6 +166,7 @@ extern "C" {
     BOOL isHidden(UIView* view) {
         __block BOOL ret = false;
 
+        // check 1
         walkUpView(view, ^BOOL(UIView* curView) {
             if([curView respondsToSelector:@selector(isHidden)] && [curView isHidden]) {
                 ret = true;
@@ -153,12 +177,18 @@ extern "C" {
             return true;
         });
 
+        // Check 2
         if(!ret) {
             // not hidden but let's check if it is scrolled off screen
             CGRect bounds = [view bounds];
             CGPoint abs_point = [view convertPoint:bounds.origin toView: nil];
 
             ret = !(abs_point.x > 0 && abs_point.y > 0);
+        }
+
+        // check 3
+        if(!ret) {
+            ret = !(CGRectContainsRect([[UIApplication sharedApplication] keyWindow].frame, view.frame));
         }
 
         return ret;
@@ -176,9 +206,11 @@ extern "C" {
             lua_error(L);
         }
 
-        AMLog(@"lua: touchDown(%f, %f)", x, y);
+        CGPoint scaled = scalePoint(CGPointMake(x, y));
+
+        AMLog(@"lua: touchDown(%d, %f, %f)", touchId, scaled.x, scaled.y);
         
-        pathIndeces[touchId] = [SimulateTouch simulateTouch:0 atPoint:scalePoint(CGPointMake(x, y)) withType:STTouchDown];
+        pathIndeces[touchId] = [SimulateTouch simulateTouch:0 atPoint:scaled withType:STTouchDown];
         
         return 0;
     }
@@ -193,9 +225,11 @@ extern "C" {
             lua_error(L);
         }
 
-        AMLog(@"lua: touchUp(%f, %f) %d id %d", x, y, pathIndeces[touchId], touchId);
+        CGPoint scaled = scalePoint(CGPointMake(x, y));
+
+        AMLog(@"lua: touchUp(%d, %f, %f) %d", touchId, scaled.x, scaled.y, pathIndeces[touchId]);
         
-        [SimulateTouch simulateTouch:pathIndeces[touchId] atPoint:scalePoint(CGPointMake(x, y)) withType:STTouchUp];
+        [SimulateTouch simulateTouch:pathIndeces[touchId] atPoint:scaled withType:STTouchUp];
         
         return 0;
     }
@@ -210,7 +244,7 @@ extern "C" {
             lua_error(L);
         }
 
-        AMLog(@"lua: touchMove(%f, %f) %d id %d", x, y, pathIndeces[touchId], touchId);
+        AMLog(@"lua: touchMove(%f, %f) %d id %d", x, y, touchId, pathIndeces[touchId]);
         
         [SimulateTouch simulateTouch:pathIndeces[touchId] atPoint:scalePoint(CGPointMake(x, y)) withType:STTouchMove];
         
@@ -222,7 +256,9 @@ extern "C" {
         
         AMLog(@"lua: inputText(%s)", inputString);
         
-        typeString([NSString stringWithUTF8String:inputString]);
+        dispatch_on_main(^{
+            typeString([NSString stringWithUTF8String:inputString]);
+        });
         
         return 0;
     }
@@ -232,10 +268,8 @@ extern "C" {
         
         AMLog(@"lua: usleep %d", micros);
         
-        if(usleep(micros) != 0) {
-            return 0;
-        }
-        
+        usleep(micros);
+
         return 0;
     }
     
@@ -248,6 +282,16 @@ extern "C" {
         adoptResolution(w, h);
         
         return 0;
+    }
+
+    int lua_getResolution(lua_State* L) {
+        lua_Number w = scaled_size.width;
+        lua_Number h = scaled_size.height;
+
+        lua_pushnumber(L, w);
+        lua_pushnumber(L, h);
+
+        return 2;
     }
     
     int lua_adaptOrientation(lua_State* L) {
@@ -429,8 +473,10 @@ extern "C" {
             circle.backgroundColor = [UIColor greenColor];
             circle.clipsToBounds = YES;
 
-            UIWindow* keyWindow = [UIApplication sharedApplication].keyWindow;
-            [keyWindow addSubview:circle];
+            dispatch_on_main(^{
+                UIWindow* keyWindow = [[UIApplication sharedApplication] keyWindow];
+                [keyWindow addSubview:circle];
+            });
         }
 
         CGFloat oldAlpha = circle.alpha;
@@ -500,6 +546,8 @@ extern "C" {
             {"inputText", &lua_inputText},
             // adaptResolution(int width, int height)
             {"adaptResolution", &lua_adaptResolution},
+            // getResolution()
+            {"getResolution", &lua_getResolution},
             // adaptOrientation(int ORIENTATION_TYPE)
             {"adaptOrientation", &lua_adaptOrientation},
             // hasComponentAt(String compname, int boxes_x, int boxes_y, int box_x, int box_y)

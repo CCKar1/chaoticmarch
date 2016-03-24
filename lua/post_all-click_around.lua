@@ -1,16 +1,33 @@
 -- let's click some buttons around the screen.
 
+tStringCount = 0
+function fill_all_fields()
+	local fields = findOfTypes("UITextField", "")
+
+    for index, field in pairs(fields) do
+    	-- click it to grab focus.
+    	click_button(field)
+    	usleep(500000)
+    	inputText("Test_string" .. tStringCount)
+    	tStringCount = tStringCount + 1
+    	usleep(1000000)
+    end
+end
+
 -- Which buttons have I clicked?
 clickedButtons = {}
 
 -- How many interation to wait before giving up
-waitTime = 15
-attempts = 2
+waitTime = 1
+attempts = 1
 
 while (attempts > 0) do
 	local button = getButton(clickedButtons)
 
 	if(button ~= nil) then
+		-- put some info in.
+		fill_all_fields()
+
 		-- reset after all buttons disappear
 		waitTime = 30
 
