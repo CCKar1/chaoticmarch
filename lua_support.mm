@@ -362,6 +362,22 @@ extern "C" {
         return ret;
     }
 
+    NSString* findTitle(UIView* view) {
+        __block NSString* ret = nil;
+
+        walkUpView(view, ^BOOL(UIView* curView) {
+            if([curView respondsToSelector:@selector(title)]) {
+                ret = [curView performSelector:@selector(title)];
+
+                return false;
+            }
+
+            return true;
+        });
+
+        return ret;
+    }
+
     int lua_findOfTypes(lua_State* L) {
         NSMutableArray* types = [[NSMutableArray alloc] init];
         int arg_num = 1;
@@ -432,6 +448,13 @@ extern "C" {
                         lua_settable(L, -3);
                     }
 
+                    NSString* title = findTitle(curView);
+                    if(title != nil) {
+                        lua_pushstring(L, "title");
+                        lua_pushstring(L, [title UTF8String]);
+                        lua_settable(L, -3);                        
+                    }
+                    
                     // local table should be at the top of the stack
                     //  and bigger table following that.
                     lua_rawseti(L, -2, nextComponent);
