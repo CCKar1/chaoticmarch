@@ -119,7 +119,7 @@ extern "C" {
 
         walkViewTree((UIView*)[[UIApplication sharedApplication] keyWindow], ^BOOL(UIView * curView){
             if(isInBounds(box, curView) && [curView respondsToSelector:@selector(text)]) {
-                NSString* text = [curView text];
+                NSString* text = [curView performSelector:@selector(text)];
 
                 AMLog(@"lua: %@", text);
 
@@ -212,6 +212,11 @@ extern "C" {
         
         pathIndeces[touchId] = [SimulateTouch simulateTouch:0 atPoint:scaled withType:STTouchDown];
         
+        if(pathIndeces[touchId] == 0) {
+            lua_pushstring(L, "touch down failed");
+            lua_error(L);
+        }
+
         return 0;
     }
     
@@ -346,7 +351,7 @@ extern "C" {
 
         walkViewTree(view, ^BOOL(UIView * curView){
             if([curView respondsToSelector:@selector(text)]) {
-                ret = [curView text];
+                ret = [curView performSelector:@selector(text)];
 
                 return false;
             }
