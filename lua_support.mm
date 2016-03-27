@@ -454,7 +454,11 @@ extern "C" {
                         lua_pushstring(L, [title UTF8String]);
                         lua_settable(L, -3);                        
                     }
-                    
+
+                    lua_pushstring(L, "class");
+                    lua_pushstring(L, [NSStringFromClass([curView class]) UTF8String]);
+                    lua_settable(L, -3);                        
+
                     // local table should be at the top of the stack
                     //  and bigger table following that.
                     lua_rawseti(L, -2, nextComponent);

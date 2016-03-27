@@ -37,7 +37,7 @@ while (attempts > 0) do
 			clickedButtons[button["text"]] = 1
 		end
 
-		log("clicked " .. button["text"])
+		log("clicked " .. componentString(button))
 	else
 		log("No buttons found, help!")
 
@@ -51,7 +51,7 @@ while (attempts > 0) do
 		if(waitTime == 0) then
 			-- do a reset and maybe try again
 			clickedButtons = {}
-			waitTime = 30
+			waitTime = 1
 			attempts = attempts - 1
 
 			log("Finished a run, resetting for attempt " .. tostring(attempts))

@@ -59,3 +59,11 @@ function getInptFields(inputState)
 
     return nil
 end
+
+function componentString(c)
+    return c["class"] .. ": @" .. 
+           tostring(c["x"]) .. "," .. tostring(c["y"]) .. " " ..
+           tostring(c["width"]) .. "x" .. tostring(c["height"]) .. 
+           ", text:" .. tostring(c["text"]) ..
+           ", title:" .. tostring(c["title"])
+end
