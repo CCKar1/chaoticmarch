@@ -1,3 +1,4 @@
+// -- (c) Synack Inc 2016
 //
 //  logging.m
 //

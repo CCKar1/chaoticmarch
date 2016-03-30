@@ -1,3 +1,5 @@
+-- (c) Synack Inc 2016
+
 -- some required types
 ORIENTATION_TYPE = { 
     UNKNOWN = 0,
