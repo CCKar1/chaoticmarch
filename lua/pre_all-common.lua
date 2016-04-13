@@ -9,6 +9,20 @@ ORIENTATION_TYPE = {
     LANDSCAPE_RIGHT = 4
 }
 
+function screen_press(x, y)
+    local cmd = '/usr/bin/stouch touch ' .. tostring(x) .. ' ' .. tostring(y)
+    log(cmd)
+    
+    local pfile = io.popen(cmd)
+
+    for line in pfile:lines() do
+    end
+    
+    pfile:close()
+end
+
+touchNum = 0
+
 -- some required functions
 function click_button(button)
     local x = button["x"] + math.floor((button["width"]/2))
@@ -16,9 +30,11 @@ function click_button(button)
 
     showCircle(0, x, y, 20);
 
-    touchDown(0, x, y)
-    usleep(100000)
-    touchUp(0, x, y)
+    touchNum = (touchNum + 1) % 9
+
+    touchDown(touchNum, x, y)
+    usleep(83410.29)
+    touchUp(touchNum, x, y)
 
     hideCircle(0);
 end
@@ -28,7 +44,12 @@ function check_alert()
     local labels = findOfTypes("UILabel", "")
 
     for index, label in pairs(labels) do
-        if(label["text"] == "Ok") then
+        usleep(100000)
+        log("check alert: " .. label["text"])
+
+        if(label["text"] == "Ok" or label["text"] == "Ok" or 
+           label["text"] == "Try Again" or label["text"] == "Cancel" or
+           label["title"] == "Error") then
             click_button(label)
         end
     end
@@ -63,7 +84,7 @@ function getInptFields(inputState)
 end
 
 function componentString(c)
-    return c["class"] .. ": @" .. 
+    return tostring(c["class"]) .. ": @" .. 
            tostring(c["x"]) .. "," .. tostring(c["y"]) .. " " ..
            tostring(c["width"]) .. "x" .. tostring(c["height"]) .. 
            ", text:" .. tostring(c["text"]) ..

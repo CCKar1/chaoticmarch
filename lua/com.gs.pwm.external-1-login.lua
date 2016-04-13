@@ -102,4 +102,6 @@ touchDown(3, 138, 619);
 usleep(83148.83);
 touchUp(3, 141, 615);
 
+resetResolution()
+
 usleep(10*83148.83);

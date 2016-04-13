@@ -299,6 +299,13 @@ extern "C" {
 
         return 2;
     }
+
+    int lua_resetResolution(lua_State* L) {
+        actual_size = [[UIScreen mainScreen] bounds].size;
+        adoptResolution(actual_size.width, actual_size.height);
+
+        return 0;
+    }
     
     int lua_adaptOrientation(lua_State* L) {
         int orientation = luaL_checkint(L, 1);
@@ -557,8 +564,7 @@ extern "C" {
     
     void execLuaScript(const char* script) {
         // initialize scale resolution.
-        actual_size = [[UIScreen mainScreen] bounds].size;
-        adoptResolution(actual_size.width, actual_size.height);
+        lua_resetResolution(NULL);
         
         lua_State *L = luaL_newstate();
         
@@ -581,6 +587,7 @@ extern "C" {
             {"adaptResolution", &lua_adaptResolution},
             // getResolution()
             {"getResolution", &lua_getResolution},
+            {"resetResolution", &lua_resetResolution},
             // adaptOrientation(int ORIENTATION_TYPE)
             {"adaptOrientation", &lua_adaptOrientation},
             // hasComponentAt(String compname, int boxes_x, int boxes_y, int box_x, int box_y)

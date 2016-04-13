@@ -1,4 +1,6 @@
-log("Loaded CACOPHONIC MARCH")
+-- (c) Synack Inc 2016
+
+log("Loaded CHAOTICMARCH")
 
 -- check if the file exists
 function file_exists(name)
@@ -31,6 +33,9 @@ allowedBundles["com.highaltitudehacks.dvia"] = 1
 allowedBundles["com.gs.pwm.external"] = 1
 allowedBundles["com.apple.iBooks"] = 1
 allowedBundles["com.hdsupply.hdsupplyfm"] = 1
+allowedBundles["com.doubleyouapps.mauitop10"] = 1
+allowedBundles["com.ebay.iphone"] = 1
+allowedBundles["com.intel.ark"] = 1
 
 bundle_id = getBundleID();
 
